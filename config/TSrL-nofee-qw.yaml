@@ -1,4 +1,4 @@
-# Technical, Reverse Sentiment, and Liquidity Analysis without transaction fee Configuration
+﻿# Technical, Reverse Sentiment, and Liquidity Analysis without transaction fee Configuration
 exp_name: "TSrL-nofee-qw"
 
 # Trading settings
@@ -12,7 +12,7 @@ tickers:
   - "Sticker | FaZe Clan (Holo) | Paris 2023"
   - "M4A4 | Desolate Space (Factory New)"
   - "Sticker | Hypnoteyes (Holo)"
-  - "M4A4 | 龍王 (Dragon King) (Factory New)"
+  - "M4A4 | 榫嶇帇 (Dragon King) (Factory New)"
   - "M4A1-S | Decimator (Factory New)"
   - "AWP | Hyper Beast (Factory New)"
   - "Operation Broken Fang Case"
@@ -49,3 +49,7 @@ multi_item_mode: true
 # Transaction fee setting (default: true if not specified)
 # Set to false to disable transaction fee for selling
 enable_transaction_fee: false
+
+# BUFF seller transaction fee rate (applied to sells only)
+transaction_fee_rate: 0.025
+

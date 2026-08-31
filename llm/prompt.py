@@ -141,7 +141,7 @@ You must provide your decision as a structured output with the following fields:
 - action: One of ["Buy", "Sell", "Hold"]
 - shares: Number of shares to buy or sell, set 0 for hold
 - price: The current price of the ticker 
-- justification: Briefly explain your decision, explicitly noting how the 2% sell fee impacted the choice.
+- justification: Briefly explain your decision, explicitly noting how the sell fee ({transaction_fee_rate_pct:.2f}%) impacted the choice.
 
 Your response should be well-reasoned and consider all aspects of the analysis.
 """

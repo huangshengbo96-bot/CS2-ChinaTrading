@@ -75,6 +75,7 @@ class FundState(TypedDict):
     portfolio: Portfolio
     num_tickers: int
     enable_transaction_fee: bool
+    transaction_fee_rate: float
 
     # updated by workflow
     # ticker -> signal of all analysts

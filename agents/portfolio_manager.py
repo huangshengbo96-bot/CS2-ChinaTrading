@@ -11,8 +11,8 @@ thresholds = {
     "decision_memory_limit": 5
 }
 
-# Trading friction assumptions, 2% per trade
-TRANSACTION_FEE_RATE = 0.02 
+# Trading friction assumptions: BUFF seller fee ~2.5% (default, overridable via config)
+TRANSACTION_FEE_RATE = 0.025 
 
 def portfolio_agent(state: FundState):
     """Make final trading decisions and generate orders for a given weapon"""
@@ -25,6 +25,7 @@ def portfolio_agent(state: FundState):
     llm_config = state["llm_config"]
     num_tickers = state["num_tickers"]
     enable_transaction_fee = state.get("enable_transaction_fee", True)
+    transaction_fee_rate = state.get("transaction_fee_rate", TRANSACTION_FEE_RATE)
 
     # Get db instance based on experiment name
     db = get_cs2_db()
@@ -91,8 +92,8 @@ def portfolio_agent(state: FundState):
             current_price=current_price,
             current_shares=current_shares,
             tradable_shares=tradable_shares,
-            transaction_fee_rate=TRANSACTION_FEE_RATE,
-            transaction_fee_rate_pct=TRANSACTION_FEE_RATE * 100,
+            transaction_fee_rate=transaction_fee_rate,
+            transaction_fee_rate_pct=transaction_fee_rate * 100,
         )
     else:
         # Use prompt without transaction fee mention

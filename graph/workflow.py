@@ -8,8 +8,9 @@ from util.cs2_db_helper import get_cs2_db
 from util.logger import logger
 from time import perf_counter
 
-# Trading friction assumptions (applied to sell only)
-TRANSACTION_FEE_RATE = 0.02  # 2% sell fee
+# Default trading friction assumption: BUFF seller fee ~2.5% (applied to sell only).
+# Overridable per experiment via config `transaction_fee_rate`.
+DEFAULT_TRANSACTION_FEE_RATE = 0.025
 
 
 class AgentWorkflow:
@@ -42,6 +43,8 @@ class AgentWorkflow:
         
         # Transaction fee setting (default: True for backward compatibility)
         self.enable_transaction_fee = config.get('enable_transaction_fee', True)
+        # Transaction fee rate (BUFF seller fee default 2.5%, overridable per config)
+        self.transaction_fee_rate = config.get('transaction_fee_rate', DEFAULT_TRANSACTION_FEE_RATE)
         
         # Validate analysts and remove invalid ones
         if self.workflow_analysts:
@@ -118,7 +121,8 @@ class AgentWorkflow:
                 llm_config = self.llm_config,
                 portfolio = portfolio,
                 num_tickers = len(self.tickers),
-                enable_transaction_fee = self.enable_transaction_fee
+                enable_transaction_fee = self.enable_transaction_fee,
+                transaction_fee_rate = self.transaction_fee_rate
             )
 
             # build the workflow
@@ -131,7 +135,8 @@ class AgentWorkflow:
                 raise RuntimeError(f"Failed to generate new portfolio {portfolio.id}")
 
             # update portfolio
-            portfolio = self.update_portfolio_ticker(portfolio, ticker, final_state["decision"], self.enable_transaction_fee)
+            portfolio = self.update_portfolio_ticker(portfolio, ticker, final_state["decision"],
+                                                      self.enable_transaction_fee, self.transaction_fee_rate)
             logger.log_portfolio(f"{ticker} position update", portfolio)
 
             if self.planner_mode:
@@ -151,7 +156,9 @@ class AgentWorkflow:
         return time_cost
 
 
-    def update_portfolio_ticker(self, portfolio: Portfolio, ticker: str, decision: Decision, enable_transaction_fee: bool = True) -> Portfolio:
+    def update_portfolio_ticker(self, portfolio: Portfolio, ticker: str, decision: Decision,
+                                enable_transaction_fee: bool = True,
+                                transaction_fee_rate: float = DEFAULT_TRANSACTION_FEE_RATE) -> Portfolio:
         """Update the ticker asset in the portfolio."""
 
         action = decision.action
@@ -183,13 +190,13 @@ class AgentWorkflow:
             portfolio.positions[ticker].shares -= actual_shares
             # Apply transaction fee only if enabled
             if enable_transaction_fee:
-                portfolio.cashflow += price * actual_shares * (1 - TRANSACTION_FEE_RATE)
+                portfolio.cashflow += price * actual_shares * (1 - transaction_fee_rate)
             else:
                 portfolio.cashflow += price * actual_shares
             
             # log limited sell order
             if actual_shares < shares:
-                fee_info = f"fee_rate={TRANSACTION_FEE_RATE:.2%}" if enable_transaction_fee else "no fee"
+                fee_info = f"fee_rate={transaction_fee_rate:.2%}" if enable_transaction_fee else "no fee"
                 logger.warning(
                     f"Limited sell order for {ticker}: requested {shares}, actual {actual_shares} "
                     f"({fee_info}, max: {max_sellable_shares})"

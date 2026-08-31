@@ -72,7 +72,7 @@ Key contributions:
 
 ### 💼 Advanced Portfolio Management
 - **Risk Control**: Maximum position ratio constraints and drawdown protection
-- **Transaction Costs**: Realistic modeling of 2% trading fees
+- **Transaction Costs**: Realistic modeling of BUFF seller fees (default 2.5%, configurable via `transaction_fee_rate` in each experiment YAML; applied to sells only)
 - **Position Sizing**: Intelligent allocation across multiple assets
 - **State Persistence**: Complete portfolio history tracking in database
 
@@ -274,7 +274,8 @@ workflow_analysts:        # Available analysts
   - technical
   - sentiment
 
-enable_transaction_fee: true  # Include trading costs
+enable_transaction_fee: true    # Include trading costs
+transaction_fee_rate: 0.025     # BUFF seller fee, applied to sells only (default 2.5%)
 ```
 
 ### Database Configuration
