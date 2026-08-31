@@ -254,26 +254,47 @@ def build_rows(item, goods_info, history_lines):
     return rows
 
 
-def fetch_all(tickers):
-    """Fetch BUFF data for all tickers and return combined CSV rows."""
+def fetch_all(tickers, update_mapping: bool = False):
+    """Fetch BUFF data for all tickers and return combined CSV rows.
+
+    Uses config/items_mapping.json (EN name -> BUFF goods_id) to skip the
+    goods search when possible; new items are searched and the mapping table
+    is updated if update_mapping is True.
+    """
+    from util.item_names import load_items_mapping, get_goods_id
+
     session = build_session()
     rows = []
     failed = []
+    mapping = load_items_mapping()
+    mapping_updated = False
 
     for i, ticker in enumerate(tickers, start=1):
         print(f"[{i}/{len(tickers)}] fetching: {ticker}")
         try:
-            item = search_goods(session, ticker)
-            if not item:
-                print(f"  !! goods not found on BUFF: {ticker}")
-                failed.append(ticker)
-                continue
+            # prefer mapping goods_id to skip search
+            goods_id = get_goods_id(ticker)
+            item = None
+            if not goods_id:
+                item = search_goods(session, ticker)
+                if not item:
+                    print(f"  !! goods not found on BUFF: {ticker}")
+                    failed.append(ticker)
+                    continue
+                goods_id = item["id"]
+                if update_mapping:
+                    mapping[ticker] = {
+                        "goods_id": goods_id,
+                        "name_cn": item.get("name") or "",
+                        "short_name_cn": item.get("short_name") or "",
+                    }
+                    mapping_updated = True
 
-            goods_id = item["id"]
             goods_info = get_goods_info(session, goods_id)
             history_lines = get_price_history_merged(session, goods_id)
 
-            item_rows = build_rows(item, goods_info, history_lines)
+            item_rows = build_rows(item or {"id": goods_id, "market_hash_name": ticker},
+                                   goods_info, history_lines)
             rows.extend(item_rows)
             print(f"  OK goods_id={goods_id} rows={len(item_rows)} "
                   f"current_price={goods_info.get('sell_min_price')}")
@@ -282,6 +303,15 @@ def fetch_all(tickers):
             failed.append(ticker)
 
         time.sleep(random.uniform(1.5, 3.5))  # be gentle to the API
+
+    if mapping_updated:
+        import json
+        mapping_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "config", "items_mapping.json")
+        with open(mapping_path, "w", encoding="utf-8") as f:
+            json.dump(mapping, f, ensure_ascii=False, indent=2)
+        print(f"  updated items mapping: {mapping_path}")
 
     return rows, failed
 
@@ -297,6 +327,8 @@ def main():
                              "default: merge windows (30, 90, 180, 365) for a full-year history")
     parser.add_argument("--output", type=str, default=None,
                         help="Output CSV path (default: apis/cs2market/cs2_data.csv)")
+    parser.add_argument("--update-mapping", action="store_true",
+                        help="Update config/items_mapping.json with newly discovered goods_id")
     args = parser.parse_args()
 
     tickers = candidate_items
@@ -313,7 +345,7 @@ def main():
     print(f"target items: {len(tickers)}, history window: "
           f"{[args.days] if args.days else list(MERGE_WINDOWS)} days")
 
-    rows, failed = fetch_all(tickers)
+    rows, failed = fetch_all(tickers, update_mapping=args.update_mapping)
 
     df = pd.DataFrame(rows, columns=["name", "batch_id", "open", "close", "volume", "item_url"])
     df.to_csv(csv_path, index=False, encoding="utf-8-sig")

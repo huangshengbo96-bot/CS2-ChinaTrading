@@ -256,6 +256,27 @@ python clear.py --config-name TS-ds
 
 ## 📊 Configuration
 
+### Item Name Mapping (`config/items_mapping.json`)
+
+The trading tickers are Steam `market_hash_name`s (e.g. `AK-47 | Asiimov (Factory New)`).
+`config/items_mapping.json` maps each ticker to its BUFF `goods_id` and Chinese name
+(e.g. `AK-47 | 二西莫夫 (崭新出厂)`), generated from BUFF:
+
+```json
+{
+  "AK-47 | Asiimov (Factory New)": {
+    "goods_id": 763469,
+    "name_cn": "AK-47 | 二西莫夫 (崭新出厂)",
+    "short_name_cn": "AK-47 | 二西莫夫"
+  }
+}
+```
+
+- `fetch_buff_data.py` uses the mapping to fetch prices directly by `goods_id`
+  (skips the search call); run with `--update-mapping` to auto-register new items.
+- The NGA sentiment matcher (`util/item_names.py`) uses the mapping + a shared
+  Chinese alias table (`CN_ALIASES`) to match English tickers against Chinese posts.
+
 ### Workflow Configuration (`config/`)
 
 ```yaml

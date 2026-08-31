@@ -25,51 +25,8 @@ import pandas as pd
 from typing import List, Optional
 from datetime import datetime, timedelta
 from apis.common_model import MediaNews
+from util.item_names import CN_ALIASES, get_aliases_cn
 from util.logger import logger
-
-# ---------------------------------------------------------------------------
-# Chinese aliases used to match NGA (Chinese) posts against English tickers.
-# Kept deliberately short: the English item name parts are also matched.
-# ---------------------------------------------------------------------------
-CN_ALIASES = {
-    "AK-47": ["AK", "AK47", "AK 47", "ak", "卡拉什"],
-    "AWP": ["awp", "大狙", "鸟狙", "aw"],
-    "Desert Eagle": ["沙鹰", "deagle", "DE"],
-    "M4A4": ["M4", "m4"],
-    "M4A1-S": ["M4A1", "消音", "m4a1"],
-    "Redline": ["红线"],
-    "Asiimov": ["二西莫夫", "a4", "二西"],
-    "Bloodsport": ["血腥运动", "血运"],
-    "Neo-Noir": ["新黑色", "黑幻"],
-    "Printstream": ["印花集", "印花"],
-    "Mecha Industries": ["机械工业", "机械"],
-    "Hyper Beast": ["暴怒野兽", "野兽"],
-    "Desolate Space": ["荒芜空间", "荒芜"],
-    "Dragon King": ["龙王", "龙"],
-    "Decimator": ["屠戮者"],
-    "Leaded Glass": ["铅玻璃", "铅"],
-    "Dreams & Nightmares": ["梦境与噩梦", "噩梦", "梦境"],
-    "Broken Fang": ["狂牙"],
-    "Riptide": ["激流"],
-    "Wildfire": ["野火"],
-    "Glove Case": ["手套箱", "手套"],
-    "Operation": ["行动", "大行动"],
-    "Sticker": ["印花", "贴纸"],
-    "Case": ["箱子", "武器箱", "箱"],
-    "Holo": ["全息"],
-    "Foil": ["闪亮", "箔"],
-    "FaZe Clan": ["faze", "法泽"],
-    "Team Liquid": ["液体", "liquid"],
-    "Paris 2023": ["巴黎2023", "巴黎 2023", "巴黎"],
-    "Bolt Energy": ["闪电能量"],
-    "Taste Buddy": ["味道"],
-    "Hypnoteyes": ["催眠"],
-    "Factory New": ["崭新"],
-    "Field-Tested": ["久经沙场", "久经"],
-    "Minimal Wear": ["略有磨损", "略磨"],
-    "Well-Worn": ["破损不堪", "破损"],
-    "Battle-Scarred": ["战痕累累", "战痕"],
-}
 
 
 class NGAAPI:
@@ -193,19 +150,18 @@ class NGAAPI:
     # ------------------------------------------------------------------
     @staticmethod
     def _extract_keywords(ticker: str) -> List[str]:
-        """Extract match keywords from an item ticker: English parts + CN aliases."""
+        """Extract match keywords from an item ticker: English parts + CN aliases + CN name."""
         keywords = []
         # English parts: split by | and () and spaces
+        cleaned = ticker
         for sep in ["|", "(", ")", ",", "/"]:
-            ticker = ticker.replace(sep, " ")
-        for part in ticker.split():
+            cleaned = cleaned.replace(sep, " ")
+        for part in cleaned.split():
             if part.strip():
                 keywords.append(part.strip())
 
-        # CN aliases for each English token
-        for en, aliases in CN_ALIASES.items():
-            if en.lower() in ticker.lower():
-                keywords.extend(aliases)
+        # Chinese aliases from the shared table + the CN name itself
+        keywords.extend(get_aliases_cn(ticker))
 
         # deduplicate (case-insensitive), keep order
         seen = set()
