@@ -2,11 +2,11 @@
 
 from apis.steam.api import SteamAPI
 from apis.cs2market.api import CS2MarketAPI
-from apis.reddit.api import RedditAPI
+from apis.nga.api import NGAAPI
 
 class APISource:
     CS2_MARKET = "cs2_market"
-    REDDIT = "reddit"
+    NGA = "nga"
     STEAM = "steam"
 
 class Router():
@@ -15,8 +15,8 @@ class Router():
     def __init__(self, source: APISource):
         if source == APISource.CS2_MARKET:
             self.api = CS2MarketAPI()
-        elif source == APISource.REDDIT:
-            self.api = RedditAPI()
+        elif source == APISource.NGA:
+            self.api = NGAAPI()
         elif source == APISource.STEAM:
             self.api = SteamAPI()
         else:
@@ -31,31 +31,26 @@ class Router():
         """Get CS2 stock last close price."""
         return self.api.get_cs2_last_close_price(ticker=ticker, trading_date=trading_date)
     
-    def get_reddit_posts(self, subreddits, limit=25, time_filter="week", sort="hot", trading_date=None):
-        """Get posts from Reddit subreddits."""
-        return self.api.get_subreddit_posts(
-            subreddits=subreddits,
+    def get_nga_posts(self, fid, limit=25, trading_date=None, window_days=7):
+        """Get posts from an NGA board (from historical CSV)."""
+        return self.api.get_posts_from_csv(
+            start_timestamp=None,
+            end_timestamp=None,
             limit=limit,
-            time_filter=time_filter,
-            sort=sort,
-            trading_date=trading_date
         )
     
-    def search_reddit_posts(self, query, subreddits, limit=25, sort="relevance", trading_date=None):
-        """Search for posts in Reddit subreddits."""
-        return self.api.search_posts(
-            query=query,
-            subreddits=subreddits,
+    def search_nga_posts(self, query, fid, limit=25, trading_date=None, window_days=7):
+        """Search for posts matching a keyword in an NGA board."""
+        return self.api.get_posts_from_csv(
+            keywords=[query],
             limit=limit,
-            sort=sort,
-            trading_date=trading_date
         )
     
-    def get_ticker_relevant_reddit_posts(self, ticker, subreddits, limit=15, min_score=2, min_comments=1, trading_date=None):
-        """Get Reddit posts relevant to a specific CS2 ticker/item."""
+    def get_ticker_relevant_nga_posts(self, ticker, forums, limit=15, min_score=0, min_comments=1, trading_date=None):
+        """Get NGA posts relevant to a specific CS2 ticker/item."""
         return self.api.get_ticker_relevant_posts(
             ticker=ticker,
-            subreddits=subreddits,
+            forums=forums,
             limit=limit,
             min_score=min_score,
             min_comments=min_comments,
@@ -88,4 +83,3 @@ class Router():
             limit=limit,
             csv_path=csv_path,
         )
-

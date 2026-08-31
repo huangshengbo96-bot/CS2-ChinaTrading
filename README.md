@@ -22,7 +22,7 @@
 Key contributions:
 - **Multi-Agent Architecture**: Modular design with specialized analyst agents for different market aspects
 - **Dynamic Agent Selection**: Meta-planner agent adaptively selects relevant analysts based on market conditions
-- **Multi-Source Data Integration**: Seamless aggregation of CS2 market data, Steam news, and Reddit sentiment
+- **Multi-Source Data Integration**: Seamless aggregation of CS2 market data (BUFF, CNY), Steam news, and NGA community sentiment
 - **Configurable Workflow**: Support for both agentic workflows and direct LLM analysis modes
 - **Risk-Aware Portfolio Management**: Sophisticated position sizing with transaction cost modeling
 
@@ -50,7 +50,7 @@ Key contributions:
 |-------|----------|-------|--------|
 | **Planner** | Selects relevant analysts based on market context | Ticker, available analysts | List of selected analysts |
 | **Technical Analyst** | Analyzes price patterns and trends | Historical price data | Technical signals (BUY/SELL/HOLD) |
-| **Sentiment Analyst** | Processes community sentiment | Reddit posts, Steam news | Sentiment score and direction |
+| **Sentiment Analyst** | Processes community sentiment | NGA posts, Steam news | Sentiment score and direction |
 | **Liquidity Analyst** | Evaluates market depth and volume | Order book, trading volume | Liquidity assessment |
 | **Event Analyst** | Identifies market-moving events | News, updates | Event impact analysis |
 | **Portfolio Manager** | Executes risk-aware trading decisions | Analyst signals, portfolio state | Trading actions with position sizes |
@@ -61,7 +61,7 @@ Key contributions:
 
 ### 🤖 Multi-Modal Analysis
 - **Technical Analysis**: Price action, trend detection, support/resistance levels
-- **Sentiment Analysis**: NLP-based sentiment extraction from Reddit and Steam communities
+- **Sentiment Analysis**: NLP-based sentiment extraction from NGA and Steam communities
 - **Liquidity Analysis**: Market depth and volume-based assessments
 - **Event-Driven Analysis**: Impact evaluation of game updates and news
 
@@ -128,13 +128,15 @@ python database/cs2_sqlite_setup.py
 
 Before running experiments, you can pre-fetch historical data to avoid API rate limits during backtesting:
 
-**Fetch Reddit data** (past 1 year):
+**Fetch NGA sentiment data** (NGA CS:GO board, Chinese community):
 ```bash
 # From project root directory
-python -m apis.reddit.fetch_reddit_data
+python -m apis.nga.fetch_nga_data --days 30
 
+# Fetch main-post content too (slower, richer summaries)
+python -m apis.nga.fetch_nga_data --days 30 --with-content
 ```
-This script fetches Reddit posts from the past year and saves them to `apis/reddit/reddit_data.csv`. No parameters required.
+This script fetches threads from the NGA CS:GO board (fid=482) and saves them to `apis/nga/nga_data.csv`. The backtest reads only from this CSV, filtered by the trading-date window, so no live calls (and no data leakage) during experiments. Re-run any time to refresh.
 
 **Fetch Steam news data**:
 ```bash
@@ -300,9 +302,9 @@ CSGOTrading/
 │       ├── liquidity.py
 │       └── event.py
 ├── apis/                   # Data source integrations
-│   ├── cs2market/          # CS2 market data
+│   ├── cs2market/          # CS2 market data (BUFF, CNY)
 │   ├── steam/              # Steam news API
-│   ├── reddit/             # Reddit sentiment API
+│   ├── nga/                # NGA community sentiment API
 │   ├── router.py           # API router
 │   └── common_model.py     # Common data models
 ├── database/               # Database layer

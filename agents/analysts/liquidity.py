@@ -6,28 +6,28 @@ from llm.inference import agent_call
 from util.cs2_db_helper import get_cs2_db
 from util.logger import logger
 
-# Liquidity analysis thresholds
+# Liquidity analysis thresholds (NGA-adapted; NGA replies/heat scale differs from Reddit)
 thresholds = {
     "volume": {
-        "high": 100,  # High trading volume threshold
+        "high": 100,  # High trading volume threshold (BUFF sell_num scale)
         "low": 10,    # Low trading volume threshold
     },
-    "reddit": {
-        "high_score": 50,      # High Reddit post score (upvotes)
-        "low_score": 5,        # Low Reddit post score
-        "high_comments": 20,   # High number of comments
-        "low_comments": 2,     # Low number of comments
+    "nga": {
+        "high_score": 10,      # High NGA thread heat (recommend/score)
+        "low_score": 0,        # Low NGA thread heat
+        "high_comments": 20,   # High number of replies
+        "low_comments": 2,     # Low number of replies
         "min_posts": 3,        # Minimum number of relevant posts for analysis
     },
-    "reddit_subreddits": ["GlobalOffensiveTrade", "csgomarketforum", "cs2"],
-    "reddit_relevant_limit": 15,
-    "reddit_min_score": 0,
-    "reddit_min_comments": 0,
+    "nga_fid": 482,
+    "nga_relevant_limit": 15,
+    "nga_min_score": 0,
+    "nga_min_comments": 0,
 }
 
 
 def liquidity_agent(state: FundState):
-    """Liquidity analysis specialist analyzing market liquidity based on trading volume and Reddit engagement for CS2 market items."""
+    """Liquidity analysis specialist analyzing market liquidity based on trading volume and NGA engagement for CS2 market items."""
     agent_name = AgentKey.LIQUIDITY
     ticker = state["ticker"]
     trading_date = state["trading_date"]
@@ -42,7 +42,7 @@ def liquidity_agent(state: FundState):
     # Initialize analysis results
     analysis_results = {
         "trading_volume": None,
-        "reddit_engagement": None,
+        "nga_engagement": None,
         "liquidity_score": None,
     }
     
@@ -76,25 +76,25 @@ def liquidity_agent(state: FundState):
             "has_data": False,
         }
     
-    # 2. Get Reddit engagement data
+    # 2. Get NGA engagement data
     try:
-        reddit_router = Router(APISource.REDDIT)
-        reddit_posts = reddit_router.get_ticker_relevant_reddit_posts(
+        nga_router = Router(APISource.NGA)
+        nga_posts = nga_router.get_ticker_relevant_nga_posts(
             ticker=ticker,
-            subreddits=thresholds["reddit_subreddits"],
-            limit=thresholds["reddit_relevant_limit"],
-            min_score=thresholds["reddit_min_score"],
-            min_comments=thresholds["reddit_min_comments"],
+            forums=[thresholds["nga_fid"]],
+            limit=thresholds["nga_relevant_limit"],
+            min_score=thresholds["nga_min_score"],
+            min_comments=thresholds["nga_min_comments"],
             trading_date=trading_date
         )
         
-        if reddit_posts and len(reddit_posts) >= thresholds["reddit"]["min_posts"]:
+        if nga_posts and len(nga_posts) >= thresholds["nga"]["min_posts"]:
             # Calculate engagement metrics
             total_score = 0
             total_comments = 0
             valid_posts = 0
             
-            for post in reddit_posts:
+            for post in nga_posts:
                 if hasattr(post, 'score') and post.score is not None:
                     total_score += post.score
                 if hasattr(post, 'num_comments') and post.num_comments is not None:
@@ -104,8 +104,8 @@ def liquidity_agent(state: FundState):
             avg_score = total_score / valid_posts if valid_posts > 0 else 0
             avg_comments = total_comments / valid_posts if valid_posts > 0 else 0
             
-            analysis_results["reddit_engagement"] = {
-                "post_count": len(reddit_posts),
+            analysis_results["nga_engagement"] = {
+                "post_count": len(nga_posts),
                 "average_score": float(avg_score),
                 "average_comments": float(avg_comments),
                 "total_score": float(total_score),
@@ -113,8 +113,8 @@ def liquidity_agent(state: FundState):
                 "has_data": True,
             }
         else:
-            analysis_results["reddit_engagement"] = {
-                "post_count": len(reddit_posts) if reddit_posts else 0,
+            analysis_results["nga_engagement"] = {
+                "post_count": len(nga_posts) if nga_posts else 0,
                 "average_score": 0.0,
                 "average_comments": 0.0,
                 "total_score": 0.0,
@@ -122,8 +122,8 @@ def liquidity_agent(state: FundState):
                 "has_data": False,
             }
     except Exception as e:
-        logger.error(f"Failed to fetch Reddit engagement for {ticker}: {e}")
-        analysis_results["reddit_engagement"] = {
+        logger.error(f"Failed to fetch NGA engagement for {ticker}: {e}")
+        analysis_results["nga_engagement"] = {
             "post_count": 0,
             "average_score": 0.0,
             "average_comments": 0.0,
@@ -134,7 +134,7 @@ def liquidity_agent(state: FundState):
     
     # 3. Format analysis data for LLM prompt
     volume_data = analysis_results["trading_volume"]
-    reddit_data = analysis_results["reddit_engagement"]
+    nga_data = analysis_results["nga_engagement"]
     
     # Format trading volume analysis
     if volume_data["has_data"]:
@@ -155,56 +155,56 @@ def liquidity_agent(state: FundState):
             "- Assessment: No trading volume data indicates potential liquidity risk as we cannot assess market activity."
         )
     
-    # Format Reddit engagement analysis
-    if reddit_data["has_data"] and reddit_data["post_count"] >= thresholds["reddit"]["min_posts"]:
-        avg_score = reddit_data["average_score"]
-        avg_comments = reddit_data["average_comments"]
-        total_score = reddit_data["total_score"]
-        total_comments = reddit_data["total_comments"]
-        post_count = reddit_data["post_count"]
+    # Format NGA engagement analysis
+    if nga_data["has_data"] and nga_data["post_count"] >= thresholds["nga"]["min_posts"]:
+        avg_score = nga_data["average_score"]
+        avg_comments = nga_data["average_comments"]
+        total_score = nga_data["total_score"]
+        total_comments = nga_data["total_comments"]
+        post_count = nga_data["post_count"]
         
         high_engagement = (
-            avg_score >= thresholds["reddit"]["high_score"] or
-            avg_comments >= thresholds["reddit"]["high_comments"]
+            avg_score >= thresholds["nga"]["high_score"] or
+            avg_comments >= thresholds["nga"]["high_comments"]
         )
         low_engagement = (
-            avg_score < thresholds["reddit"]["low_score"] and
-            avg_comments < thresholds["reddit"]["low_comments"]
+            avg_score < thresholds["nga"]["low_score"] and
+            avg_comments < thresholds["nga"]["low_comments"]
         )
         
         engagement_level = "high" if high_engagement else "low" if low_engagement else "moderate"
         
-        reddit_engagement_analysis = (
-            f"Reddit community engagement data is available.\n"
+        nga_engagement_analysis = (
+            f"NGA community engagement data is available.\n"
             f"- Number of relevant posts: {post_count}\n"
-            f"- Average upvotes per post: {avg_score:.1f}\n"
-            f"- Average comments per post: {avg_comments:.1f}\n"
-            f"- Total upvotes: {total_score:.0f}\n"
-            f"- Total comments: {total_comments:.0f}\n"
+            f"- Average heat per post: {avg_score:.1f}\n"
+            f"- Average replies per post: {avg_comments:.1f}\n"
+            f"- Total heat: {total_score:.0f}\n"
+            f"- Total replies: {total_comments:.0f}\n"
             f"- Engagement level: {engagement_level.capitalize()}\n"
             f"- Assessment: {'Strong community interest indicates active market and good liquidity' if engagement_level == 'high' else 'Weak community interest may indicate low market activity and liquidity risk' if engagement_level == 'low' else 'Moderate community interest suggests acceptable market activity'}"
         )
     else:
-        post_count = reddit_data["post_count"]
-        reddit_engagement_analysis = (
-            f"Reddit community engagement data is INSUFFICIENT.\n"
+        post_count = nga_data["post_count"]
+        nga_engagement_analysis = (
+            f"NGA community engagement data is INSUFFICIENT.\n"
             f"- Number of relevant posts found: {post_count}\n"
-            f"- Minimum required: {thresholds['reddit']['min_posts']}\n"
-            f"- Assessment: Insufficient Reddit data limits our ability to assess community interest and market sentiment. This may indicate low market visibility or limited community discussion."
+            f"- Minimum required: {thresholds['nga']['min_posts']}\n"
+            f"- Assessment: Insufficient NGA data limits our ability to assess community interest and market sentiment. This may indicate low market visibility or limited community discussion."
         )
     
     # Create prompt for LLM
     prompt = LIQUIDITY_PROMPT.format(
         ticker=ticker,
         trading_volume_analysis=trading_volume_analysis,
-        reddit_engagement_analysis=reddit_engagement_analysis,
+        nga_engagement_analysis=nga_engagement_analysis,
         volume_high=thresholds["volume"]["high"],
         volume_low=thresholds["volume"]["low"],
-        reddit_high_score=thresholds["reddit"]["high_score"],
-        reddit_high_comments=thresholds["reddit"]["high_comments"],
-        reddit_low_score=thresholds["reddit"]["low_score"],
-        reddit_low_comments=thresholds["reddit"]["low_comments"],
-        reddit_min_posts=thresholds["reddit"]["min_posts"]
+        nga_high_score=thresholds["nga"]["high_score"],
+        nga_high_comments=thresholds["nga"]["high_comments"],
+        nga_low_score=thresholds["nga"]["low_score"],
+        nga_low_comments=thresholds["nga"]["low_comments"],
+        nga_min_posts=thresholds["nga"]["min_posts"]
     )
     
     # Get LLM signal
@@ -219,4 +219,3 @@ def liquidity_agent(state: FundState):
     db.save_signal(portfolio_id, agent_name, ticker, prompt, signal)
     
     return {"analyst_signals": [signal]}
-

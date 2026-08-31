@@ -15,7 +15,7 @@ def sentiment_reverse_agent(state: FundState):
     # Get db instance
     db = get_cs2_db()
     
-    logger.log_agent_status(agent_name, ticker, "Analyzing Reddit sentiment (reverse mode)")
+    logger.log_agent_status(agent_name, ticker, "Analyzing NGA sentiment (reverse mode)")
     
     # Call the original sentiment agent to get the base signal
     result = sentiment_agent(state)

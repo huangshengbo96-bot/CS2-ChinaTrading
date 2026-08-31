@@ -71,19 +71,19 @@ class AgentRegistry:
         cls.register_agent(
             key=AgentKey.SENTIMENT,
             agent_func=sentiment_agent,
-            agent_doc="Sentiment analysis specialist analyzing Reddit community sentiment for CS2 market items."
+            agent_doc="Sentiment analysis specialist analyzing NGA community sentiment for CS2 market items."
         )
 
         cls.register_agent(
             key=AgentKey.SENTIMENT_REVERSE,
             agent_func=sentiment_reverse_agent,
-            agent_doc="Reverse sentiment analysis specialist for CS2 market items. Uses contrarian hypothesis: when Reddit discussion is overly bullish, it may indicate market overheating and returns Bearish signal."
+            agent_doc="Reverse sentiment analysis specialist for CS2 market items. Uses contrarian hypothesis: when NGA discussion is overly bullish, it may indicate market overheating and returns Bearish signal."
         )
 
         cls.register_agent(
             key=AgentKey.LIQUIDITY,
             agent_func=liquidity_agent,
-            agent_doc="Liquidity analysis specialist analyzing market liquidity based on trading volume and Reddit engagement for CS2 market items."
+            agent_doc="Liquidity analysis specialist analyzing market liquidity based on trading volume and NGA engagement for CS2 market items."
         )
 
         cls.register_agent(

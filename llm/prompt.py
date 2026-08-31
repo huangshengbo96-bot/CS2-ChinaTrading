@@ -27,21 +27,21 @@ Support and Resistance Levels:
 
 
 SENTIMENT_PROMPT = """
-You are a sentiment analyst evaluating items in CS2 market based on Reddit discussions.
+You are a sentiment analyst evaluating items in CS2 market based on NGA (Chinese gaming forum) discussions.
 
-Analyze Reddit discussions for {ticker} ({post_count} posts):
+Analyze NGA discussions for {ticker} ({post_count} posts):
 - Direct posts: price trends, demand/supply factors
 - General posts: overall market mood → infer impact on {ticker}
-- Focus on content sentiment, not just upvotes/comments
+- Focus on content sentiment, not just reply counts
 - If posts < 5: return "Neutral" and explain data limits
 
-Reddit discussions:
-{reddit_posts}
+NGA discussions:
+{nga_posts}
 
 Give a short-term (1-2 weeks) sentiment: Bullish / Bearish / Neutral.
 """ + ANALYST_OUTPUT_FORMAT
 
-REDDIT_SENTIMENT_INSUFFICIENT_DATA_PROMPT = """
+NGA_SENTIMENT_INSUFFICIENT_DATA_PROMPT = """
 You are a CS2 sentiment analyst. However, there is not enough data to evaluate the sentiment of the item.
 
 Insufficient data for {ticker}:
@@ -50,10 +50,10 @@ Insufficient data for {ticker}:
 Return "Neutral" and explain: data is insufficient (lack of discussion/visibility), we treat it as a neutral sentiment; highlight uncertainty and recommend caution.
 """ + ANALYST_OUTPUT_FORMAT
 
-REDDIT_SENTIMENT_FETCH_ERROR_PROMPT = """
+NGA_SENTIMENT_FETCH_ERROR_PROMPT = """
 You are a CS2 sentiment analyst.
 
-Reddit sentiment for {ticker} could not be evaluated due to a data fetch error.
+NGA sentiment for {ticker} could not be evaluated due to a data fetch error.
 
 Return "Neutral" and briefly explain that sentiment is unavailable because of the fetch error; note that this is a conservative fallback.
 """ + ANALYST_OUTPUT_FORMAT
@@ -65,7 +65,7 @@ Original sentiment signal: {original_signal}
 Original justification: {original_justification}
 
 **Contrarian Hypothesis:**
-- Overly bullish Reddit chatter can signal market overheating → potentially bearish
+- Overly bullish NGA chatter can signal market overheating → potentially bearish
 - Negative chatter can indicate overselling → potentially bullish
 - Neutral sentiment remains neutral
 
@@ -97,17 +97,17 @@ Evaluate event impact (bullish/bearish/neutral) for short-term (1-2 weeks) price
 """ + ANALYST_OUTPUT_FORMAT
 
 LIQUIDITY_PROMPT = """
-You are a liquidity analyst for CS2 items. Analyze liquidity based on trading volume and Reddit engagement.
+You are a liquidity analyst for CS2 items. Analyze liquidity based on trading volume and NGA engagement.
 
 **Analysis:**
 {trading_volume_analysis}
 
-{reddit_engagement_analysis}
+{nga_engagement_analysis}
 
 **Thresholds:**
 - Volume: High ≥{volume_high}, Low <{volume_low}
-- Reddit: High (score ≥{reddit_high_score} or comments ≥{reddit_high_comments}), Low (score <{reddit_low_score} and comments <{reddit_low_comments})
-- Min posts: {reddit_min_posts}
+- NGA: High (score ≥{nga_high_score} or replies ≥{nga_high_comments}), Low (score <{nga_low_score} and replies <{nga_low_comments})
+- Min posts: {nga_min_posts}
 
 **Signal:**
 - Bullish: High volume OR strong engagement (both → higher confidence)

@@ -1,8 +1,8 @@
 from graph.constants import AgentKey, Signal
 from llm.prompt import (
     SENTIMENT_PROMPT,
-    REDDIT_SENTIMENT_INSUFFICIENT_DATA_PROMPT,
-    REDDIT_SENTIMENT_FETCH_ERROR_PROMPT,
+    NGA_SENTIMENT_INSUFFICIENT_DATA_PROMPT,
+    NGA_SENTIMENT_FETCH_ERROR_PROMPT,
 )
 from graph.schema import FundState, AnalystSignal
 from llm.inference import agent_call
@@ -10,23 +10,22 @@ from apis.router import Router, APISource
 from util.cs2_db_helper import get_cs2_db
 from util.logger import logger
 
-# Sentiment analysis thresholds
+# Sentiment analysis thresholds (NGA-adapted)
 thresholds = {
-    "reddit_post_count": 25,
-    "reddit_subreddits": ["GlobalOffensiveTrade", "csgomarketforum", "cs2"],
-    "reddit_time_filter": "week",
-    "reddit_sort": "hot",
-    # Reddit quality filtering thresholds
-    "reddit_min_score": 2,  # Minimum post score for quality filtering
-    "reddit_min_comments": 1,  # Minimum number of comments
-    "reddit_relevant_limit": 15  # Limit for ticker-relevant posts
+    "nga_post_count": 5,  # Min ticker-relevant posts; NGA single-item threads are rarer than Reddit
+    "nga_fid": 482,       # CS:GO board on NGA
+    "nga_window_days": 7,
+    # NGA quality filtering thresholds
+    "nga_min_score": 0,      # NGA threads have no upvote score like Reddit; keep 0
+    "nga_min_comments": 1,   # Minimum number of replies
+    "nga_relevant_limit": 15  # Limit for ticker-relevant posts
 }
 
 
 def sentiment_agent(state: FundState):
     """
-    Sentiment analysis specialist analyzing Reddit community sentiment for CS2 market items.
-    This agent focuses on community discussions, sentiment, and market sentiment trends.
+    Sentiment analysis specialist analyzing NGA community sentiment for CS2 market items.
+    This agent focuses on Chinese community discussions, sentiment, and market sentiment trends.
     """
     agent_name = AgentKey.SENTIMENT
     ticker = state["ticker"]
@@ -37,30 +36,30 @@ def sentiment_agent(state: FundState):
     
     db = get_cs2_db()
     
-    logger.log_agent_status(agent_name, ticker, "Fetching Reddit market sentiment")
+    logger.log_agent_status(agent_name, ticker, "Fetching NGA market sentiment")
     
-    # Get the Reddit posts
-    router = Router(APISource.REDDIT)
+    # Get the NGA posts
+    router = Router(APISource.NGA)
     
     try:
-        # Use ticker-relevant search instead of generic subreddit hot posts
+        # Use ticker-relevant search on the CS:GO board
         # Pass trading_date to filter posts (only posts from trading_date - 7 days to trading_date)
-        reddit_posts = router.get_ticker_relevant_reddit_posts(
+        nga_posts = router.get_ticker_relevant_nga_posts(
             ticker=ticker,
-            subreddits=thresholds["reddit_subreddits"],
-            limit=thresholds["reddit_relevant_limit"],
-            min_score=thresholds["reddit_min_score"],
-            min_comments=thresholds["reddit_min_comments"],
+            forums=[thresholds["nga_fid"]],
+            limit=thresholds["nga_relevant_limit"],
+            min_score=thresholds["nga_min_score"],
+            min_comments=thresholds["nga_min_comments"],
             trading_date=trading_date
         )
         
         # If no posts or too few posts, use insufficient-data prompt
-        min_posts = thresholds["reddit_post_count"]
-        if not reddit_posts or len(reddit_posts) < min_posts:
-            post_count = len(reddit_posts) if reddit_posts else 0
-            logger.warning(f"Insufficient Reddit posts for {ticker}: {post_count} < {min_posts}. Using insufficient-data prompt.")
+        min_posts = thresholds["nga_post_count"]
+        if not nga_posts or len(nga_posts) < min_posts:
+            post_count = len(nga_posts) if nga_posts else 0
+            logger.warning(f"Insufficient NGA posts for {ticker}: {post_count} < {min_posts}. Using insufficient-data prompt.")
 
-            prompt = REDDIT_SENTIMENT_INSUFFICIENT_DATA_PROMPT.format(
+            prompt = NGA_SENTIMENT_INSUFFICIENT_DATA_PROMPT.format(
                 ticker=ticker,
                 post_count=post_count,
                 min_posts=min_posts
@@ -77,12 +76,12 @@ def sentiment_agent(state: FundState):
             
             return {"analyst_signals": [signal]}
         
-        logger.info(f"Found {len(reddit_posts)} ticker-relevant Reddit posts for {ticker}. Proceeding with LLM analysis.")
+        logger.info(f"Found {len(nga_posts)} ticker-relevant NGA posts for {ticker}. Proceeding with LLM analysis.")
                 
     except Exception as e:
-        logger.error(f"Failed to fetch Reddit sentiment for {ticker}: {e}")
+        logger.error(f"Failed to fetch NGA sentiment for {ticker}: {e}")
 
-        prompt = REDDIT_SENTIMENT_FETCH_ERROR_PROMPT.format(ticker=ticker)
+        prompt = NGA_SENTIMENT_FETCH_ERROR_PROMPT.format(ticker=ticker)
         
         signal = agent_call(
             prompt=prompt,
@@ -95,16 +94,16 @@ def sentiment_agent(state: FundState):
 
         return {"analyst_signals": [signal]}
     
-    # Process Reddit posts
-    reddit_posts_dict = [m.model_dump_json() for m in reddit_posts]
+    # Process NGA posts
+    nga_posts_dict = [m.model_dump_json() for m in nga_posts]
     
     prompt = SENTIMENT_PROMPT.format(
         ticker=ticker,
-        reddit_posts=reddit_posts_dict,
-        post_count=len(reddit_posts)
+        nga_posts=nga_posts_dict,
+        post_count=len(nga_posts)
     )
     
-    logger.info(f"Using {len(reddit_posts)} ticker-relevant Reddit posts for {ticker} sentiment analysis")
+    logger.info(f"Using {len(nga_posts)} ticker-relevant NGA posts for {ticker} sentiment analysis")
     
     # Get LLM signal
     signal = agent_call(
@@ -118,4 +117,3 @@ def sentiment_agent(state: FundState):
     db.save_signal(portfolio_id, agent_name, ticker, prompt, signal)
 
     return {"analyst_signals": [signal]}
-
