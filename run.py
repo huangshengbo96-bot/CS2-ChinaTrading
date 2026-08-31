@@ -19,7 +19,7 @@ from util.logger import logger
 from util.cs2_db_helper import cs2_db_initialize, get_cs2_db
 
 _script_dir = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(_script_dir)
+PROJECT_ROOT = _script_dir
 
 
 def load_portfolio_config(cfg: Dict[str, Any], db):
@@ -122,7 +122,7 @@ Example usage:
         sys.exit(1)
     
     try:
-        abs_config_path = os.path.join(PROJECT_ROOT, "src", "config", config_path)
+        abs_config_path = os.path.join(PROJECT_ROOT, "config", config_path)
             
         with open(abs_config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
@@ -151,7 +151,7 @@ Example usage:
     use_local_db = not args.no_local_db
     
     # Ensure log directory exists
-    Path(PROJECT_ROOT, "src", "logs").mkdir(parents=True, exist_ok=True)
+    Path(PROJECT_ROOT, "logs").mkdir(parents=True, exist_ok=True)
     
     current_date = start_date
     

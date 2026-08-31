@@ -91,3 +91,8 @@ class AgentRegistry:
             agent_func=event_agent,
             agent_doc="Event analysis specialist analyzing Steam official news and game updates for their impact on CS2 item prices (supply mechanism, visibility/popularity, market sentiment)."
         )
+
+
+# Register all agents at import time so every consumer of AgentRegistry
+# (workflow, planner, analysts) sees the full mapping.
+AgentRegistry.run_registry()

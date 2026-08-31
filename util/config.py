@@ -16,7 +16,7 @@ class ConfigParser:
         """Load configuration from YAML file."""
         cfg = {}
         try:
-            with open(self.config_path, 'r') as f:
+            with open(self.config_path, 'r', encoding='utf-8') as f:
                 logger.info(f"Loading configuration from {self.config_path}")
                 cfg = yaml.safe_load(f)
         except FileNotFoundError:

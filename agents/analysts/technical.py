@@ -66,6 +66,18 @@ def technical_agent(state: FundState):
         logger.error(f"Failed to fetch price data for {ticker}: {e}")
         return state
 
+    # Guard against empty price data (e.g. no BUFF history for this ticker/date)
+    if prices_df is None or prices_df.empty:
+        logger.warning(f"No price data for {ticker} on {trading_date}; returning neutral technical signal")
+        signal = AnalystSignal(
+            signal=Signal.NEUTRAL,
+            justification=f"价格数据不足，无法进行技术分析，返回中性信号（{trading_date}）"
+        )
+        prompt = "No price data available for technical analysis."
+        logger.log_signal(agent_name, ticker, signal)
+        db.save_signal(portfolio_id, agent_name, ticker, prompt, signal)
+        return {"analyst_signals": [signal]}
+
     # Analyze technical indicators
     signal_results = {
         "trend": get_trend_signal(prices_df, thresholds["trend"]),

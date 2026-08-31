@@ -1,4 +1,4 @@
-"""
+﻿"""
 CS2 database view tool
 View and print CS2 database portfolios and analyst signals
 Must specify experiment name (exp_name) to view data
@@ -133,7 +133,7 @@ def view_portfolios(exp_name=None):
         change = assets - prev_assets
         pct = (assets - initial) / initial * 100
         
-        print(f"{date:<15} ${cash:<14.2f} ${assets:<14.2f} {pct:>+14.2f}%")
+        print(f"{date:<15} ¥{cash:<14.2f} ¥{assets:<14.2f} {pct:>+14.2f}%")
         prev_assets = assets
     
     print("-" * 80)
@@ -143,7 +143,7 @@ def view_portfolios(exp_name=None):
         latest_assets = rows[-1][2]
         total_pct = (latest_assets - initial) / initial * 100
         print(f"\nTrading days: {len(rows)} | Start: {rows[0][0][:10]} | Latest: {latest_date}")
-        print(f"Initial assets: ${initial:.2f} | Latest assets: ${latest_assets:.2f} | Return: {total_pct:.2f}%")
+        print(f"Initial assets: ¥{initial:.2f} | Latest assets: ¥{latest_assets:.2f} | Return: {total_pct:.2f}%")
     
     conn.close()
 
@@ -199,12 +199,12 @@ def view_latest_positions(exp_name=None):
     
     for item, data in sorted_positions:
         price = data['value'] / data['shares'] if data['shares'] > 0 else 0
-        print(f"{item[:49]:<50} {data['shares']:<10} ${data['value']:<14.2f} ${price:<14.2f}")
+        print(f"{item[:49]:<50} {data['shares']:<10} ¥{data['value']:<14.2f} ¥{price:<14.2f}")
         total_value += data['value']
         active_count += 1
     
     print("-" * 95)
-    print(f"Active holdings: {active_count} | Total positions value: ${total_value:.2f}")
+    print(f"Active holdings: {active_count} | Total positions value: ¥{total_value:.2f}")
     
     # Get cash
     if exp_name:
@@ -216,7 +216,7 @@ def view_latest_positions(exp_name=None):
     result = cursor.fetchone()
     if result:
         cash, total = result
-        print(f"Cash: ${cash:.2f} | Total assets: ${total:.2f}")
+        print(f"Cash: ¥{cash:.2f} | Total assets: ¥{total:.2f}")
     
     conn.close()
 
@@ -280,13 +280,13 @@ def export_portfolio_to_csv(exp_name, rows):
             # Total positions value row
             total_row = ['Total positions value']
             for date in dates:
-                total_row.append(f"${date_total_values.get(date, 0):.2f}")
+                total_row.append(f"¥{date_total_values.get(date, 0):.2f}")
             writer.writerow(total_row)
             
             # Total assets value row
             total_assets_row = ['Total assets value']
             for date in dates:
-                total_assets_row.append(f"${date_total_assets.get(date, 0):.2f}")
+                total_assets_row.append(f"¥{date_total_assets.get(date, 0):.2f}")
             writer.writerow(total_assets_row)
         
         print(f"\nCSV file exported: {csv_filename}")
@@ -465,7 +465,7 @@ def view_daily_positions(exp_name=None, target_date=None):
             
             print(f"{'Date':<15} {'Cash':<15} {'Total assets':<15}")
             print("-" * 50)
-            print(f"{date[:10]:<15} ${cash:<14.2f} ${total_assets:<14.2f}")
+            print(f"{date[:10]:<15} ¥{cash:<14.2f} ¥{total_assets:<14.2f}")
             print("-" * 50)
             print()
             
@@ -485,13 +485,13 @@ def view_daily_positions(exp_name=None, target_date=None):
                 shares = data.get('shares', 0)
                 value = data.get('value', 0)
                 price = value / shares if shares > 0 else 0
-                print(f"{item[:49]:<50} {shares:<10} ${value:<14.2f} ${price:<14.2f}")
+                print(f"{item[:49]:<50} {shares:<10} ¥{value:<14.2f} ¥{price:<14.2f}")
                 total_value += value
                 active_count += 1
             
             print("-" * 95)
-            print(f"Actice holding: {active_count} | Total assets Value: ${total_value:.2f}")
-            print(f"Cash: ${cash:.2f} | Total assets${total_assets:.2f}")
+            print(f"Actice holding: {active_count} | Total assets Value: ¥{total_value:.2f}")
+            print(f"Cash: ¥{cash:.2f} | Total assets¥{total_assets:.2f}")
             print()
     else:
         # Display all the date
@@ -511,7 +511,7 @@ def view_daily_positions(exp_name=None, target_date=None):
             pct = (total_assets - initial) / initial * 100
             
             print(f"\n{'='*95}")
-            print(f"Date: {date[:10]} | Cash: ${cash:.2f} | Total assets: ${total_assets:.2f} | Return: {pct:+.2f}%")
+            print(f"Date: {date[:10]} | Cash: ¥{cash:.2f} | Total assets: ¥{total_assets:.2f} | Return: {pct:+.2f}%")
             print(f"{'='*95}")
             
             if active_count > 0:
@@ -528,10 +528,10 @@ def view_daily_positions(exp_name=None, target_date=None):
                     shares = data.get('shares', 0)
                     value = data.get('value', 0)
                     price = value / shares if shares > 0 else 0
-                    print(f"{item[:49]:<50} {shares:<10} ${value:<14.2f} ${price:<14.2f}")
+                    print(f"{item[:49]:<50} {shares:<10} ¥{value:<14.2f} ¥{price:<14.2f}")
                 
                 print("-" * 95)
-                print(f"Active holding amount: {active_count} | Total asset value: ${total_value:.2f}")
+                print(f"Active holding amount: {active_count} | Total asset value: ¥{total_value:.2f}")
             else:
                 print("No active position")
         
@@ -540,7 +540,7 @@ def view_daily_positions(exp_name=None, target_date=None):
         latest_assets = rows[-1][2]
         total_pct = (latest_assets - initial) / initial * 100
         print(f"Trading days:{len(rows)}| Starting from{rows[0][0][:10]} | Latest data:{latest_date}")
-        print(f"Inititial assets:${initial:.2f} | Latest assets:${latest_assets:.2f} | Return:{total_pct:.2f}%")
+        print(f"Inititial assets:¥{initial:.2f} | Latest assets:¥{latest_assets:.2f} | Return:{total_pct:.2f}%")
         
         # Export the CSV only when all dates are viewed and there is an experiment name
         if exp_name and not target_date:
