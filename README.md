@@ -154,13 +154,20 @@ Parameters:
 - `--limit`: Maximum news items per ticker per day (default: 15, optional)
 - `--output`: Output CSV file path (default: `<script_dir>/steam_data.csv`, optional)
 
-**Fetch CS2 market data**:
+**Fetch CS2 market data (BUFF, CNY prices)**:
 ```bash
 # From project root directory
-python -m apis.cs2market.fetch_cs2_data
-
+python -m apis.cs2market.fetch_buff_data
 ```
-This script fetches current price data for candidate items from Steam Community Market and saves to `apis/cs2market/cs2_data.csv`. No parameters required. The script will automatically retry failed items up to 3 times.
+
+Parameters:
+- `--config`: Path to config YAML file to read `tickers` from (optional, defaults to built-in item list)
+- `--days`: Single BUFF price-history window in days (7/30/90/180/365, optional). Default: merges windows (30, 90, 180, 365) so the CSV covers ~1 year of CNY history (dense near-term) — enough for year-to-date backtesting.
+- `--output`: Output CSV file path (default: `<script_dir>/cs2_data.csv`, optional)
+
+Requirements:
+- Set `BUFF_COOKIE` in `.env`: login to [https://buff.163.com](https://buff.163.com), open DevTools -> Network -> filter `api`, copy the `Cookie` header value.
+- The script first visits the BUFF homepage to pass its device check, then fetches each item's 90-day CNY price history plus the current snapshot, and writes `apis/cs2market/cs2_data.csv` in the same legacy format (`name, batch_id, open, close, volume, item_url`).
 
 **Note**: These fetch scripts can be run anytime to update the historical data. The main experiment workflow will use these CSV files to avoid making API calls during backtesting.
 
